@@ -1,0 +1,77 @@
+#include <iomanip>
+#include <cstdint>
+
+#include <utils.h>
+
+#include <core/utils.h>
+
+
+namespace CoreUtils {
+
+    ReturnObject::ReturnObject(std::string rValue, uint8_t behavior, bool sendResponse) {
+        this->rValue = rValue;
+        this->behavior = behavior;
+        this->bytes = rValue.size();
+        this->sendResponse = sendResponse;
+    }
+
+    void assignValue(RequestObj* requestObj, uint8_t objectiveValue, const std::string& currentData) {
+
+        switch (objectiveValue) {
+            case 0:
+                requestObj->method = Types::getProtocol(currentData);
+                break;
+            case 1:
+                requestObj->target = currentData;
+                break;
+            case 2:
+                requestObj->httpVersion = currentData;
+                break;
+            case 3:
+                requestObj->header.host = currentData;
+                break;
+            case 4:
+                requestObj->header.userAgent = currentData;
+                break;
+            case 5:
+                requestObj->header.mediaType = currentData;
+                break;
+            default:
+                break;
+        }
+    }
+
+    void printBuffer(const uint8_t* buffer, size_t bufferSize) {
+        for (size_t i {}; i < bufferSize; i++) {
+            std::cout << buffer[i];
+        }
+
+        std::cout << '\x0A';
+    }
+
+    RequestObj* parseRequest(const uint8_t* buffer, size_t bufferSize) {
+
+        RequestObj* requestObj = new RequestObj();
+        std::string currentData {};
+        uint8_t objectiveValue {};
+
+        for (size_t i {}; i < bufferSize; i++) {
+
+            uint8_t c = buffer[i];
+
+            if (c == '\x0D') i++;
+            if (c == '\x20' || c == '\x0D') {
+                assignValue(requestObj, objectiveValue, currentData);
+                currentData = "";
+                objectiveValue++;
+                continue;
+            }
+
+            currentData += c;
+        }
+
+        return requestObj;
+
+    }
+
+}

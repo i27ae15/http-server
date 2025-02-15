@@ -5,7 +5,12 @@
 #include <string>
 #include <vector>
 
-namespace ServerUtils {
+#include <core/types.h>
+
+namespace CoreUtils {
+
+    constexpr uint16_t BUFFER_SIZE = 1024;
+
     struct ReturnObject {
         std::string rValue; ///< The return value as a string.
         size_t bytes; ///< The size of the return value in bytes. calculated as rValue.size().
@@ -21,6 +26,26 @@ namespace ServerUtils {
         */
         ReturnObject(std::string rValue, uint8_t behavior = 0, bool sendResponse = true);
     };
+
+    struct RequestObjHeader {
+
+        std::string host;
+        std::string userAgent;
+        std::string mediaType;
+
+    };
+
+    struct RequestObj {
+        Types::Protocol method;
+        std::string target;
+        std::string httpVersion;
+
+        RequestObjHeader header;
+    };
+
+    RequestObj* parseRequest(const uint8_t* buffer, size_t bufferSize);
+
+    void printBuffer(const uint8_t* buffer, size_t bufferSize);
 }
 
 #endif // SERVER_UTILS_H

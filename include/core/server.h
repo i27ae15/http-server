@@ -12,9 +12,9 @@
 #include <netdb.h>
 #include <cstdint>
 
-#include <server/utils.h>
+#include <core/utils.h>
 
-namespace Server {
+namespace Core {
 
     class Server {
 
@@ -29,11 +29,11 @@ namespace Server {
 
         void incrementBacklog();
         void decrementBacklog();
+        void handleResponse(uint16_t clientFD);
 
         private:
 
         void initServer();
-        void sendResponse(uint16_t clientFD, ServerUtils::ReturnObject* rObj);
 
         int8_t serverFd;
 

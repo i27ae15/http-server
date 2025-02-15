@@ -2,11 +2,12 @@
 
 #include <utils.h>
 
-#include <server/server.h>
-#include <server/exceptions.h>
-#include <server/utils.h>
+#include <core/server.h>
+#include <core/sender.h>
+#include <core/exceptions.h>
+#include <core/utils.h>
 
-namespace Server {
+namespace Core {
 
     Server* Server::createServer(uint8_t connBacklog, uint16_t port) {
         return new Server(connBacklog, port);
@@ -44,18 +45,26 @@ namespace Server {
         PRINT_SUCCESS("SERVER INITIATED");
     }
 
-    void Server::sendResponse(
-        uint16_t clientFD,
-        ServerUtils::ReturnObject* rObj
-    ) {
+    void Server::handleResponse(uint16_t clientFD) {
+        uint8_t buffer[CoreUtils::BUFFER_SIZE];
+        uint16_t bytesReceived = recv(clientFD, buffer, CoreUtils::BUFFER_SIZE, 0);
 
-        if (!rObj->sendResponse) return;
-        send(clientFD, rObj->rValue.c_str(), rObj->bytes, rObj->behavior);
+        if (bytesReceived < 0) return;
+
+        CoreUtils::printBuffer(buffer, bytesReceived);
+        CoreUtils::RequestObj* requestObj = CoreUtils::parseRequest(buffer, bytesReceived);
+
+        Core::Sender sender = Core::Sender(clientFD);
+
+        if (requestObj->target != "/") {
+            sender.sendNotFound();
+        } else {
+            sender.sendOk();
+        }
     }
 
     void startServer(Server* server) {
 
-        // while (true) {
         int clientAddrLen = sizeof(server->clientAddr);
 
         uint16_t clientFD = accept(
@@ -64,10 +73,7 @@ namespace Server {
             (socklen_t *) &clientAddrLen
         );
 
-        ServerUtils::ReturnObject* rObj = new ServerUtils::ReturnObject("HTTP/1.1 200 OK\r\n\r\n");
-        server->sendResponse(clientFD, rObj);
-
-        // }
+        server->handleResponse(clientFD);
 
         close(server->serverFd);
     }

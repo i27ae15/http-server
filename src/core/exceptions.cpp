@@ -3,7 +3,7 @@
 #include <string>
 #include <cstdint>
 
-#include <server/exceptions.h>
+#include <core/exceptions.h>
 #include <utils.h>
 
 namespace ServerException {

@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#include <server/server.h>
+#include <core/server.h>
 
 int main(int argc, char **argv) {
   // Flush after every std::cout / std::cerr
@@ -18,8 +18,8 @@ int main(int argc, char **argv) {
   // You can use print statements as follows for debugging, they'll be visible when running tests.
   std::cout << "Logs from your program will appear here!\n";
 
-  Server::Server* server = Server::Server::createServer();
-  Server::startServer(server);
+  Core::Server* server = Core::Server::createServer();
+  Core::startServer(server);
 
   return 0;
 }
