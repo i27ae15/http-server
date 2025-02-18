@@ -11,6 +11,8 @@ namespace CoreUtils {
 
     constexpr uint16_t BUFFER_SIZE = 1024;
 
+    std::vector<std::string> split(const std::string var, char delimiter);
+
     struct ReturnObject {
         std::string rValue; ///< The return value as a string.
         size_t bytes; ///< The size of the return value in bytes. calculated as rValue.size().
@@ -36,11 +38,17 @@ namespace CoreUtils {
     };
 
     struct RequestObj {
-        Types::Protocol method;
+        Types::Protocol protocol;
         std::string target;
         std::string httpVersion;
+        std::vector<std::string> splitTarget;
 
         RequestObjHeader header;
+
+        RequestObj();
+        RequestObj(Types::Protocol protocol, std::string target, std::string httpVersion, RequestObjHeader header);
+
+        void setSplitTarget();
     };
 
     RequestObj* parseRequest(const uint8_t* buffer, size_t bufferSize);

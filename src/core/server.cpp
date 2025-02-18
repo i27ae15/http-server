@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <vector>
 
 #include <utils.h>
 
@@ -14,7 +15,17 @@ namespace Core {
     }
 
     Server::Server(uint8_t connBacklog, uint16_t port) :
-        serverFd {}, connBacklog {connBacklog}, port{port} {
+        serverFd {},
+        connBacklog {connBacklog},
+        port{port},
+        methodRouter{
+            {
+                ECHO, [this](CoreUtils::RequestObj* obj, Core::Sender* sender) {
+                    return this->handleEcho(obj, sender);
+                }
+            }
+        }
+        {
             initServer();
         }
 
@@ -45,6 +56,15 @@ namespace Core {
         PRINT_SUCCESS("SERVER INITIATED");
     }
 
+    void Server::handleEcho(CoreUtils::RequestObj* obj, Core::Sender* sender) {
+
+        const std::string toEcho = obj->splitTarget[1];
+        std::string msg = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length:" + std::to_string(toEcho.size()) + "\r\n\r\n" + toEcho;
+
+        CoreUtils::ReturnObject* rObj = new CoreUtils::ReturnObject(msg);
+        sender->sendResponse(rObj);
+    }
+
     void Server::handleResponse(uint16_t clientFD) {
         uint8_t buffer[CoreUtils::BUFFER_SIZE];
         uint16_t bytesReceived = recv(clientFD, buffer, CoreUtils::BUFFER_SIZE, 0);
@@ -54,13 +74,16 @@ namespace Core {
         CoreUtils::printBuffer(buffer, bytesReceived);
         CoreUtils::RequestObj* requestObj = CoreUtils::parseRequest(buffer, bytesReceived);
 
-        Core::Sender sender = Core::Sender(clientFD);
+        Core::Sender* sender = new Core::Sender(clientFD);
+        // Sendin OK here, because the absence of a route means that we want the
+        // route of the server, which is just "/".
+        if (!requestObj->splitTarget.size()) { (void)sender->sendOk(); return; }
 
-        if (requestObj->target != "/") {
-            sender.sendNotFound();
-        } else {
-            sender.sendOk();
-        }
+        const std::string route = requestObj->splitTarget[0];
+
+        // If we cannot route the method, return not found.
+        if (methodRouter.find(route) == methodRouter.end()) return (void)sender->sendNotFound();
+        (void)methodRouter[route](requestObj, sender);
     }
 
     void startServer(Server* server) {

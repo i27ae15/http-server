@@ -11,10 +11,16 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <cstdint>
+#include <unordered_map>
+#include <functional>
 
 #include <core/utils.h>
 
 namespace Core {
+
+    const constexpr char* ECHO = "echo";
+
+    class Sender;
 
     class Server {
 
@@ -35,6 +41,8 @@ namespace Core {
 
         void initServer();
 
+        void handleEcho(CoreUtils::RequestObj* obj, Sender* sender);
+
         int8_t serverFd;
 
         uint8_t connBacklog;
@@ -43,6 +51,9 @@ namespace Core {
         struct sockaddr_in serverAddr;
         struct sockaddr_in clientAddr;
 
+        std::unordered_map<
+        std::string,
+        std::function<void(CoreUtils::RequestObj*, Sender*)>> methodRouter;
     };
 
     void startServer(Server* server);

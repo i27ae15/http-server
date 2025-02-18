@@ -1,5 +1,8 @@
 #include <iomanip>
 #include <cstdint>
+#include <iostream>
+#include <sstream>
+#include <vector>
 
 #include <utils.h>
 
@@ -7,6 +10,33 @@
 
 
 namespace CoreUtils {
+
+    std::vector<std::string> split(const std::string var, char delimiter) {
+        std::vector<std::string> toReturn {};
+        std::stringstream ss(var);
+        std::string token;
+
+        while (std::getline(ss, token, delimiter)) {
+            toReturn.push_back(token);
+        }
+
+        return toReturn;
+    }
+
+    RequestObj::RequestObj() : protocol{}, target{}, httpVersion{}, header{}, splitTarget{} {}
+
+    RequestObj::RequestObj(
+        Types::Protocol protocol,
+        std::string target,
+        std::string httpVersion,
+        RequestObjHeader header
+    ) : protocol{protocol}, target{target}, httpVersion{httpVersion}, header{header},
+        splitTarget{split(target, '/')} {}
+
+    void RequestObj::setSplitTarget() {
+        if (splitTarget.size()) return;
+        splitTarget = split(target, '/');
+    }
 
     ReturnObject::ReturnObject(std::string rValue, uint8_t behavior, bool sendResponse) {
         this->rValue = rValue;
@@ -19,10 +49,11 @@ namespace CoreUtils {
 
         switch (objectiveValue) {
             case 0:
-                requestObj->method = Types::getProtocol(currentData);
+                requestObj->protocol = Types::getProtocol(currentData);
                 break;
             case 1:
                 requestObj->target = currentData;
+                requestObj->setSplitTarget();
                 break;
             case 2:
                 requestObj->httpVersion = currentData;
@@ -59,11 +90,11 @@ namespace CoreUtils {
 
             uint8_t c = buffer[i];
 
-            if (c == '\x0D') i++;
             if (c == '\x20' || c == '\x0D') {
                 assignValue(requestObj, objectiveValue, currentData);
                 currentData = "";
                 objectiveValue++;
+                i++;
                 continue;
             }
 
