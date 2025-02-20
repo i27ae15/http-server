@@ -92,7 +92,6 @@ namespace Core {
         if (requestObj->splitTarget.size() == 1) { (void)sender->sendOk(); return; }
 
         const std::string route = requestObj->splitTarget[1];
-        PRINT_HIGHLIGHT("ROUTE: " + route);
 
         // If we cannot route the method, return not found.
         if (methodRouter.find(route) == methodRouter.end()) return (void)sender->sendNotFound();
