@@ -23,6 +23,11 @@ namespace Core {
                 ECHO, [this](CoreUtils::RequestObj* obj, Core::Sender* sender) {
                     return this->handleEcho(obj, sender);
                 }
+            },
+            {
+                USER_AGENT, [this](CoreUtils::RequestObj* obj, Core::Sender* sender) {
+                    return this->handleUserAgent(obj, sender);
+                }
             }
         }
         {
@@ -58,9 +63,16 @@ namespace Core {
 
     void Server::handleEcho(CoreUtils::RequestObj* obj, Core::Sender* sender) {
 
-        const std::string toEcho = obj->splitTarget[1];
+        const std::string toEcho = obj->splitTarget[2];
         std::string msg = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length:" + std::to_string(toEcho.size()) + "\r\n\r\n" + toEcho;
 
+        CoreUtils::ReturnObject* rObj = new CoreUtils::ReturnObject(msg);
+        sender->sendResponse(rObj);
+    }
+
+    void Server::handleUserAgent(CoreUtils::RequestObj* obj, Core::Sender* sender) {
+
+        std::string msg = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length:" + std::to_string(obj->header.userAgent.size() - 1) + "\r\n\r\n" + obj->header.userAgent;
         CoreUtils::ReturnObject* rObj = new CoreUtils::ReturnObject(msg);
         sender->sendResponse(rObj);
     }
@@ -71,15 +83,16 @@ namespace Core {
 
         if (bytesReceived < 0) return;
 
-        CoreUtils::printBuffer(buffer, bytesReceived);
+        // CoreUtils::printBuffer(buffer, bytesReceived);
         CoreUtils::RequestObj* requestObj = CoreUtils::parseRequest(buffer, bytesReceived);
 
         Core::Sender* sender = new Core::Sender(clientFD);
         // Sendin OK here, because the absence of a route means that we want the
         // route of the server, which is just "/".
-        if (!requestObj->splitTarget.size()) { (void)sender->sendOk(); return; }
+        if (requestObj->splitTarget.size() == 1) { (void)sender->sendOk(); return; }
 
-        const std::string route = requestObj->splitTarget[0];
+        const std::string route = requestObj->splitTarget[1];
+        PRINT_HIGHLIGHT("ROUTE: " + route);
 
         // If we cannot route the method, return not found.
         if (methodRouter.find(route) == methodRouter.end()) return (void)sender->sendNotFound();

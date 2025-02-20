@@ -80,26 +80,71 @@ namespace CoreUtils {
         std::cout << '\x0A';
     }
 
-    RequestObj* parseRequest(const uint8_t* buffer, size_t bufferSize) {
+    void parseFirstPart(RequestObj* requestObj, const uint8_t* buffer, uint8_t& index) {
 
-        RequestObj* requestObj = new RequestObj();
         std::string currentData {};
         uint8_t objectiveValue {};
 
-        for (size_t i {}; i < bufferSize; i++) {
+        while ( objectiveValue < 3) {
 
-            uint8_t c = buffer[i];
+            uint8_t c = buffer[index];
+            index++;
 
             if (c == '\x20' || c == '\x0D') {
                 assignValue(requestObj, objectiveValue, currentData);
                 currentData = "";
                 objectiveValue++;
-                i++;
+                if (c == '\x0D') { index++; return; }
                 continue;
             }
 
             currentData += c;
+
         }
+
+    }
+
+    void parseSecondPart(RequestObj* RequestObj, const uint8_t* buffer, uint8_t& index) {
+
+        std::string toSearch[2] = {"Host", "User-Agent"};
+        std::string currentData = {};
+        uint8_t idxWord {};
+        uint8_t objectiveValue {3};
+
+        bool parse {};
+
+        while (idxWord < toSearch->size() - 1) {
+
+            uint8_t c = buffer[index];
+            currentData += c;
+
+            if (currentData == toSearch[idxWord]) {
+                parse = true;
+                currentData = "";
+                index += 2;
+            }
+
+            if (parse && c == '\x20' || c == '\x0D') {
+                assignValue(RequestObj, objectiveValue, currentData);
+                parse = false;
+                currentData = "";
+                idxWord++;
+                index++;
+                objectiveValue++;
+            }
+
+            index++;
+        }
+
+    }
+
+    RequestObj* parseRequest(const uint8_t* buffer, size_t bufferSize) {
+
+        RequestObj* requestObj = new RequestObj();
+        uint8_t index {};
+
+        parseFirstPart(requestObj, buffer, index);
+        parseSecondPart(requestObj, buffer, index);
 
         return requestObj;
 

@@ -19,6 +19,7 @@
 namespace Core {
 
     const constexpr char* ECHO = "echo";
+    const constexpr char* USER_AGENT = "user-agent";
 
     class Sender;
 
@@ -42,6 +43,7 @@ namespace Core {
         void initServer();
 
         void handleEcho(CoreUtils::RequestObj* obj, Sender* sender);
+        void handleUserAgent(CoreUtils::RequestObj* obj, Sender* sender);
 
         int8_t serverFd;
 
