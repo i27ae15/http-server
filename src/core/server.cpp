@@ -85,9 +85,6 @@ namespace Core {
 
         if (bytesReceived < 0) return;
 
-        PRINT_HIGHLIGHT("HANDLING RESPONSE 1");
-
-
         // CoreUtils::printBuffer(buffer, bytesReceived);
         CoreUtils::RequestObj* requestObj = CoreUtils::parseRequest(buffer, bytesReceived);
 
@@ -95,8 +92,6 @@ namespace Core {
         // Sendin OK here, because the absence of a route means that we want the
         // route of the server, which is just "/".
         if (requestObj->splitTarget.size() == 1) { (void)sender->sendOk(); return; }
-
-        PRINT_HIGHLIGHT("HANDLING RESPONSE 2");
 
         const std::string route = requestObj->splitTarget[1];
 
