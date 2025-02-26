@@ -28,6 +28,7 @@ namespace Core {
         public:
 
         friend void startServer(Server* server);
+        friend void handleClient(uint16_t clientFD, Server* server);
 
         Server(uint8_t connBacklog, uint16_t port = 4221);
         ~Server();
@@ -51,7 +52,6 @@ namespace Core {
         uint16_t port;
 
         struct sockaddr_in serverAddr;
-        struct sockaddr_in clientAddr;
 
         std::unordered_map<
         std::string,
@@ -59,6 +59,7 @@ namespace Core {
     };
 
     void startServer(Server* server);
+    void handleClient(uint16_t clientFD, Server* server);
 
 }
 
