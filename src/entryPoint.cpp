@@ -15,9 +15,7 @@ int main(int argc, char **argv) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
-  // You can use print statements as follows for debugging, they'll be visible when running tests.
-
-  Core::Server* server = Core::Server::createServer();
+  Core::Server* server = Core::Server::createServer(argc, argv);
   Core::startServer(server);
 
   return 0;

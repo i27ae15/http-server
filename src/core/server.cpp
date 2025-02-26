@@ -8,8 +8,17 @@
 #include <core/exceptions.h>
 #include <core/utils.h>
 #include <thread>
+#include <filesystem>
 
 namespace Core {
+
+    Server* Server::createServer(uint32_t argc, char** argv) {
+        Server* server = new Server();
+
+        server->handleArguments(argc, argv);
+
+        return server;
+    }
 
     Server* Server::createServer(uint8_t connBacklog, uint16_t port) {
         return new Server(connBacklog, port);
@@ -19,6 +28,7 @@ namespace Core {
         serverFd {},
         connBacklog {connBacklog},
         port {port},
+        filesDir {},
         methodRouter{
             {
                 ECHO, [this](CoreUtils::RequestObj* obj, Core::Sender* sender) {
@@ -28,6 +38,11 @@ namespace Core {
             {
                 USER_AGENT, [this](CoreUtils::RequestObj* obj, Core::Sender* sender) {
                     return this->handleUserAgent(obj, sender);
+                }
+            },
+            {
+                FILES, [this](CoreUtils::RequestObj* obj, Core::Sender* sender) {
+                    return this->handleFiles(obj, sender);
                 }
             }
         }
@@ -78,6 +93,29 @@ namespace Core {
         sender->sendResponse(rObj);
     }
 
+    void Server::handleFiles(CoreUtils::RequestObj* obj, Core::Sender* sender) {
+
+        std::string fileObj = obj->splitTarget[obj->splitTarget.size() - 1];
+
+        // Loop through the files:
+
+        for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(filesDir)) {
+
+            if (!entry.is_regular_file() || entry.path().filename() != fileObj) continue;
+
+            std::string fContent = CoreUtils::readFileContent(entry);
+            std::string msg = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:" + std::to_string(fContent.size()) + "\r\n\r\n" + fContent;
+
+            std::cout << msg << '\x0A';
+            CoreUtils::ReturnObject* rObj = new CoreUtils::ReturnObject(msg);
+            sender->sendResponse(rObj);
+
+            return;
+        }
+
+        sender->sendNotFound();
+    }
+
     void Server::handleResponse(uint16_t clientFD) {
 
         uint8_t buffer[CoreUtils::BUFFER_SIZE];
@@ -85,7 +123,6 @@ namespace Core {
 
         if (bytesReceived < 0) return;
 
-        // CoreUtils::printBuffer(buffer, bytesReceived);
         CoreUtils::RequestObj* requestObj = CoreUtils::parseRequest(buffer, bytesReceived);
 
         Core::Sender* sender = new Core::Sender(clientFD);
@@ -100,6 +137,16 @@ namespace Core {
         (void)methodRouter[route](requestObj, sender);
     }
 
+    void Server::handleArguments(uint32_t argc, char** argv) {
+
+        for (uint32_t i = 1; i < argc; i++) {
+            std::string flag = reinterpret_cast<char*>(argv[i]);
+            std::string value = reinterpret_cast<char*>(argv[++i]);
+
+            if (flag == "--directory") filesDir = value;
+        }
+
+    }
 
     void handleClient(uint16_t clientFD, Server* server) {
         server->handleResponse(clientFD);

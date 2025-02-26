@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include <core/types.h>
 
@@ -53,7 +54,10 @@ namespace CoreUtils {
 
     RequestObj* parseRequest(const uint8_t* buffer, size_t bufferSize);
 
+    std::string readFileContent(const std::filesystem::directory_entry& entry);
+
     void printBuffer(const uint8_t* buffer, size_t bufferSize);
+
 }
 
 #endif // SERVER_UTILS_H

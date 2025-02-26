@@ -20,6 +20,7 @@ namespace Core {
 
     const constexpr char* ECHO = "echo";
     const constexpr char* USER_AGENT = "user-agent";
+    const constexpr char* FILES = "files";
 
     class Sender;
 
@@ -30,14 +31,14 @@ namespace Core {
         friend void startServer(Server* server);
         friend void handleClient(uint16_t clientFD, Server* server);
 
-        Server(uint8_t connBacklog, uint16_t port = 4221);
+        Server(uint8_t connBacklog = 10, uint16_t port = 4221);
         ~Server();
 
+        static Server* createServer(uint32_t argc, char** argv);
         static Server* createServer(uint8_t connBacklog = 5, uint16_t port = 4221);
 
-        void incrementBacklog();
-        void decrementBacklog();
         void handleResponse(uint16_t clientFD);
+        void handleArguments(uint32_t argc, char** argv);
 
         private:
 
@@ -45,6 +46,7 @@ namespace Core {
 
         void handleEcho(CoreUtils::RequestObj* obj, Sender* sender);
         void handleUserAgent(CoreUtils::RequestObj* obj, Sender* sender);
+        void handleFiles(CoreUtils::RequestObj* obj, Sender* sender);
 
         int8_t serverFd;
 
@@ -56,6 +58,7 @@ namespace Core {
         std::unordered_map<
         std::string,
         std::function<void(CoreUtils::RequestObj*, Sender*)>> methodRouter;
+        std::string filesDir;
     };
 
     void startServer(Server* server);

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <filesystem>
+#include <fstream>
 
 #include <utils.h>
 
@@ -148,6 +150,20 @@ namespace CoreUtils {
 
         return requestObj;
 
+    }
+
+    std::string readFileContent(const std::filesystem::directory_entry& entry) {
+
+        std::ifstream inputFile(entry.path());
+        std::string fContent {};
+
+        char ch {};
+
+        while (inputFile.get(ch)) {
+            fContent += ch;
+        }
+
+        return fContent;
     }
 
 }
