@@ -33,4 +33,9 @@ namespace Core {
 
     }
 
+    void Sender::sendCreated() {
+        CoreUtils::ReturnObject* rObj = new CoreUtils::ReturnObject("HTTP/1.1 201 Created\r\n\r\n");
+        sendResponse(rObj);
+    }
+
 }

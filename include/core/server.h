@@ -58,7 +58,7 @@ namespace Core {
         std::unordered_map<
         std::string,
         std::function<void(CoreUtils::RequestObj*, Sender*)>> methodRouter;
-        std::string filesDir;
+        std::string dirName;
     };
 
     void startServer(Server* server);

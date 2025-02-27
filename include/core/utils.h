@@ -34,7 +34,10 @@ namespace CoreUtils {
 
         std::string host;
         std::string userAgent;
+        std::string contentLength;
         std::string mediaType;
+
+        uint32_t getContentLength();
 
     };
 
@@ -43,6 +46,7 @@ namespace CoreUtils {
         std::string target;
         std::string httpVersion;
         std::vector<std::string> splitTarget;
+        std::string content;
 
         RequestObjHeader header;
 
@@ -52,9 +56,14 @@ namespace CoreUtils {
         void setSplitTarget();
     };
 
+    void parseFirstPart(RequestObj* requestobj, const uint8_t* buffer, uint8_t& index);
+    void parseHeader(RequestObj* requestobj, const uint8_t* buffer, uint8_t& index, size_t& bufferSize);
+    void parseRequestContent(RequestObj* requestObj, const uint8_t* buffer, uint8_t& index);
+
     RequestObj* parseRequest(const uint8_t* buffer, size_t bufferSize);
 
     std::string readFileContent(const std::filesystem::directory_entry& entry);
+    void writeFileContent(const std::string& fileName, const std::string& fContent);
 
     void printBuffer(const uint8_t* buffer, size_t bufferSize);
 

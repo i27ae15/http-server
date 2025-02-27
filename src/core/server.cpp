@@ -10,6 +10,8 @@
 #include <thread>
 #include <filesystem>
 
+#include <core/types.h>
+
 namespace Core {
 
     Server* Server::createServer(uint32_t argc, char** argv) {
@@ -28,7 +30,7 @@ namespace Core {
         serverFd {},
         connBacklog {connBacklog},
         port {port},
-        filesDir {},
+        dirName {},
         methodRouter{
             {
                 ECHO, [this](CoreUtils::RequestObj* obj, Core::Sender* sender) {
@@ -96,22 +98,35 @@ namespace Core {
     void Server::handleFiles(CoreUtils::RequestObj* obj, Core::Sender* sender) {
 
         std::string fileObj = obj->splitTarget[obj->splitTarget.size() - 1];
+        std::string fileName = dirName + "/" + fileObj;
 
         // Loop through the files:
+        switch (obj->protocol) {
+            case Types::Protocol::GET:
+                for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(dirName)) {
 
-        for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(filesDir)) {
+                    if (!entry.is_regular_file() || entry.path().filename() != fileObj) continue;
 
-            if (!entry.is_regular_file() || entry.path().filename() != fileObj) continue;
+                    std::string fContent = CoreUtils::readFileContent(entry);
+                    std::string msg = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:" + std::to_string(fContent.size()) + "\r\n\r\n" + fContent;
 
-            std::string fContent = CoreUtils::readFileContent(entry);
-            std::string msg = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:" + std::to_string(fContent.size()) + "\r\n\r\n" + fContent;
+                    std::cout << msg << '\x0A';
+                    CoreUtils::ReturnObject* rObj = new CoreUtils::ReturnObject(msg);
+                    (void)sender->sendResponse(rObj);
 
-            std::cout << msg << '\x0A';
-            CoreUtils::ReturnObject* rObj = new CoreUtils::ReturnObject(msg);
-            sender->sendResponse(rObj);
+                    return;
+                }
+                break;
 
-            return;
+            case Types::Protocol::POST:
+                (void)CoreUtils::writeFileContent(fileName, obj->content);
+                sender->sendCreated();
+                return;
+
+            default:
+                break;
         }
+
 
         sender->sendNotFound();
     }
@@ -143,7 +158,7 @@ namespace Core {
             std::string flag = reinterpret_cast<char*>(argv[i]);
             std::string value = reinterpret_cast<char*>(argv[++i]);
 
-            if (flag == "--directory") filesDir = value;
+            if (flag == "--directory") dirName = value;
         }
 
     }

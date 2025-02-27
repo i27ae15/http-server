@@ -16,6 +16,7 @@ namespace Core {
 
             void sendResponse(CoreUtils::ReturnObject* rObj);
             void sendNotFound();
+            void sendCreated();
             void sendOk();
 
         private:

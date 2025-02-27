@@ -5,6 +5,7 @@
 #include <vector>
 #include <filesystem>
 #include <fstream>
+#include <array>
 
 #include <utils.h>
 
@@ -25,7 +26,7 @@ namespace CoreUtils {
         return toReturn;
     }
 
-    RequestObj::RequestObj() : protocol{}, target{}, httpVersion{}, header{}, splitTarget{} {}
+    RequestObj::RequestObj() : protocol{}, target{}, httpVersion{}, header{}, splitTarget{}, content{} {}
 
     RequestObj::RequestObj(
         Types::Protocol protocol,
@@ -47,6 +48,10 @@ namespace CoreUtils {
         this->sendResponse = sendResponse;
     }
 
+    uint32_t RequestObjHeader::getContentLength() {
+        return std::stoi(contentLength);
+    }
+
     void assignValue(RequestObj* requestObj, uint8_t objectiveValue, const std::string& currentData) {
 
         switch (objectiveValue) {
@@ -64,7 +69,13 @@ namespace CoreUtils {
                 requestObj->header.host = currentData;
                 break;
             case 4:
-                requestObj->header.userAgent = currentData;
+
+                if (requestObj->protocol == Types::GET) {
+                    requestObj->header.userAgent = currentData;
+                } else {
+                    requestObj->header.contentLength = currentData;
+                }
+
                 break;
             case 5:
                 requestObj->header.mediaType = currentData;
@@ -106,19 +117,23 @@ namespace CoreUtils {
 
     }
 
-    void parseSecondPart(RequestObj* RequestObj, const uint8_t* buffer, uint8_t& index) {
+    void parseHeader(RequestObj* requestObj, const uint8_t* buffer, uint8_t& index, size_t& bufferSize) {
 
-        std::string toSearch[2] = {"Host", "User-Agent"};
+        std::array<std::string, 3> toSearch = {"Host", "User-Agent", "Content-Type"};
+        if (requestObj->protocol == Types::POST) toSearch[1] = "Content-Length";
+
         std::string currentData = {};
         uint8_t idxWord {};
         uint8_t objectiveValue {3};
 
         bool parse {};
 
-        while (idxWord < toSearch->size() - 1) {
+        while (idxWord < toSearch.size() && index < bufferSize) {
 
             uint8_t c = buffer[index];
             currentData += c;
+
+            // std::cout << c;
 
             if (currentData == toSearch[idxWord]) {
                 parse = true;
@@ -126,8 +141,8 @@ namespace CoreUtils {
                 index += 2;
             }
 
-            if (parse && c == '\x20' || c == '\x0D') {
-                assignValue(RequestObj, objectiveValue, currentData);
+            if (parse && (c == '\x20' || c == '\x0D')) {
+                assignValue(requestObj, objectiveValue, currentData);
                 parse = false;
                 currentData = "";
                 idxWord++;
@@ -138,6 +153,19 @@ namespace CoreUtils {
             index++;
         }
 
+        index += 2;
+
+    }
+
+    void parseRequestContent(RequestObj* requestObj, const uint8_t* buffer, uint8_t& index) {
+
+        uint32_t contentLength = requestObj->header.getContentLength();
+
+        while (contentLength--) {
+            const uint8_t& c = buffer[index++];
+            std::cout << c;
+            requestObj->content += c;
+        }
     }
 
     RequestObj* parseRequest(const uint8_t* buffer, size_t bufferSize) {
@@ -145,8 +173,10 @@ namespace CoreUtils {
         RequestObj* requestObj = new RequestObj();
         uint8_t index {};
 
-        parseFirstPart(requestObj, buffer, index);
-        parseSecondPart(requestObj, buffer, index);
+        (void)parseFirstPart(requestObj, buffer, index);
+        (void)parseHeader(requestObj, buffer, index, bufferSize);
+
+        if (requestObj->protocol == Types::POST) (void)parseRequestContent(requestObj, buffer, index);
 
         return requestObj;
 
@@ -164,6 +194,15 @@ namespace CoreUtils {
         }
 
         return fContent;
+    }
+
+    void writeFileContent(const std::string& fileName, const std::string& fContent) {
+
+        std::ofstream outputFile(fileName);
+
+        outputFile << fContent;
+        outputFile.close();
+
     }
 
 }
