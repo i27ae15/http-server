@@ -58,6 +58,7 @@ namespace CoreUtils {
         void setSplitTarget();
     };
 
+    std::string gzip_compress(const std::string& data);
     void parseFirstPart(RequestObj* requestobj, const uint8_t* buffer, uint8_t& index);
     void parseHeader(RequestObj* requestobj, const uint8_t* buffer, uint8_t& index, size_t& bufferSize);
     void parseRequestContent(RequestObj* requestObj, const uint8_t* buffer, uint8_t& index);

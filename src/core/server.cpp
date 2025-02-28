@@ -80,19 +80,34 @@ namespace Core {
     }
 
     void Server::handleEcho(CoreUtils::RequestObj* obj, Core::Sender* sender) {
+        std::string toEcho = obj->splitTarget[2];
+        bool useGzip = (obj->header.acceptEncoding == "gzip");
 
-        const std::string toEcho = obj->splitTarget[2];
+        PRINT_SUCCESS("TO ECHO: " + toEcho);
 
-        std::string msg = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length:" + std::to_string(toEcho.size());
+        if (useGzip) {
+            toEcho = CoreUtils::gzip_compress(toEcho);
+        }
 
-        if (obj->header.acceptEncoding.size() > 0) msg += "\r\nContent-Encoding: " + obj->header.acceptEncoding;
-        msg += "\r\n\r\n" + toEcho;
+        std::ostringstream response;
+        response << "HTTP/1.1 200 OK\r\n";
+        response << "Content-Type: text/plain\r\n";
+        response << "Content-Length: " << toEcho.size() << "\r\n";
 
+        if (useGzip) {
+            response << "Content-Encoding: gzip\r\n";
+        }
+
+        response << "\r\n"; // End of headers
+        response.write(toEcho.data(), toEcho.size()); // Correct way to send binary data
+
+        std::string msg = response.str();
         PRINT_HIGHLIGHT(msg);
 
         CoreUtils::ReturnObject* rObj = new CoreUtils::ReturnObject(msg);
         sender->sendResponse(rObj);
     }
+
 
     void Server::handleUserAgent(CoreUtils::RequestObj* obj, Core::Sender* sender) {
 

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <array>
 #include <unordered_map>
+#include <zlib.h>
 
 #include <utils.h>
 
@@ -58,7 +59,6 @@ namespace CoreUtils {
         std::string encodingObjective = "gzip";
         std::string currentWord {};
         uint8_t idx {};
-        // Parse encoding:
 
         for (char c : currentData) {
             if (c == encodingObjective[idx]) {
@@ -76,9 +76,26 @@ namespace CoreUtils {
 
     }
 
-    void assignValue(RequestObj* requestObj, uint8_t objectiveValue, const std::string& currentData) {
+    std::string gzip_compress(const std::string& data) {
+        z_stream stream{};
+        stream.next_in = reinterpret_cast<Bytef*>(const_cast<char*>(data.data()));
+        stream.avail_in = data.size();
 
-        std::cout << "TO ADD: " + currentData << '\x0A';
+        std::vector<uint8_t> compressed(data.size() + 50); // Buffer with extra space
+        stream.next_out = compressed.data();
+        stream.avail_out = compressed.size();
+
+        deflateInit2(&stream, Z_BEST_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY);
+        deflate(&stream, Z_FINISH);
+        deflateEnd(&stream);
+
+        compressed.resize(stream.total_out); // Resize to actual compressed size
+
+        return std::string(reinterpret_cast<char*>(compressed.data()), compressed.size()); // Ensure binary safety
+    }
+
+
+    void assignValue(RequestObj* requestObj, uint8_t objectiveValue, const std::string& currentData) {
 
         switch (objectiveValue) {
             case 0:
