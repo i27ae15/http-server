@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <array>
+#include <unordered_map>
 
 #include <utils.h>
 
@@ -54,6 +55,8 @@ namespace CoreUtils {
 
     void assignValue(RequestObj* requestObj, uint8_t objectiveValue, const std::string& currentData) {
 
+        std::cout << "TO ADD: " + currentData << '\x0A';
+
         switch (objectiveValue) {
             case 0:
                 requestObj->protocol = Types::getProtocol(currentData);
@@ -69,16 +72,25 @@ namespace CoreUtils {
                 requestObj->header.host = currentData;
                 break;
             case 4:
-
-                if (requestObj->protocol == Types::GET) {
-                    requestObj->header.userAgent = currentData;
-                } else {
-                    requestObj->header.contentLength = currentData;
-                }
-
+                requestObj->header.userAgent = currentData;
                 break;
             case 5:
                 requestObj->header.mediaType = currentData;
+                break;
+            case 6:
+                requestObj->header.contentLength = currentData;
+                break;
+            case 7:
+                requestObj->header.accept = currentData;
+                break;
+            case 8:
+
+                PRINT_SUCCESS(std::to_string(currentData.size()));
+
+                if (currentData == "gzip\x0D") {
+                    requestObj->header.acceptEncoding = currentData;
+                    PRINT_HIGHLIGHT(requestObj->header.acceptEncoding);
+                }
                 break;
             default:
                 break;
@@ -119,26 +131,38 @@ namespace CoreUtils {
 
     void parseHeader(RequestObj* requestObj, const uint8_t* buffer, uint8_t& index, size_t& bufferSize) {
 
-        std::array<std::string, 3> toSearch = {"Host", "User-Agent", "Content-Type"};
-        if (requestObj->protocol == Types::POST) toSearch[1] = "Content-Length";
+        const std::unordered_map<std::string, uint8_t> headers = {
+            {"Host:", 3},
+            {"User-Agent:", 4},
+            {"Content-Type:", 5},
+            {"Content-Length:", 6},
+            {"Accept:", 7},
+            {"Accept-Encoding:", 8}
+        };
 
         std::string currentData = {};
         uint8_t idxWord {};
-        uint8_t objectiveValue {3};
+        uint8_t objectiveValue {};
+        bool isContentType {};
 
         bool parse {};
 
-        while (idxWord < toSearch.size() && index < bufferSize) {
+        while (bufferSize > index) {
 
             uint8_t c = buffer[index];
             currentData += c;
-
-            // std::cout << c;
-
-            if (currentData == toSearch[idxWord]) {
+            if (headers.count(currentData) > 0) {
+                objectiveValue = headers.at(currentData);
                 parse = true;
+
+                if (objectiveValue == 5) isContentType = true;
+
                 currentData = "";
                 index += 2;
+                continue;
+
+
+
             }
 
             if (parse && (c == '\x20' || c == '\x0D')) {
@@ -148,6 +172,7 @@ namespace CoreUtils {
                 idxWord++;
                 index++;
                 objectiveValue++;
+                if (isContentType) { index++; break;}
             }
 
             index++;

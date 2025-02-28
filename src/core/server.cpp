@@ -82,7 +82,13 @@ namespace Core {
     void Server::handleEcho(CoreUtils::RequestObj* obj, Core::Sender* sender) {
 
         const std::string toEcho = obj->splitTarget[2];
-        std::string msg = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length:" + std::to_string(toEcho.size()) + "\r\n\r\n" + toEcho;
+
+        std::string msg = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length:" + std::to_string(toEcho.size());
+
+        if (obj->header.acceptEncoding.size() > 0) msg += "\r\nContent-Encoding: " + obj->header.acceptEncoding;
+        msg += "\r\n\r\n" + toEcho;
+
+        PRINT_HIGHLIGHT(msg);
 
         CoreUtils::ReturnObject* rObj = new CoreUtils::ReturnObject(msg);
         sender->sendResponse(rObj);
@@ -138,6 +144,7 @@ namespace Core {
 
         if (bytesReceived < 0) return;
 
+        CoreUtils::printBuffer(buffer, bytesReceived);
         CoreUtils::RequestObj* requestObj = CoreUtils::parseRequest(buffer, bytesReceived);
 
         Core::Sender* sender = new Core::Sender(clientFD);

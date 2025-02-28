@@ -36,6 +36,8 @@ namespace CoreUtils {
         std::string userAgent;
         std::string contentLength;
         std::string mediaType;
+        std::string accept;
+        std::string acceptEncoding;
 
         uint32_t getContentLength();
 
