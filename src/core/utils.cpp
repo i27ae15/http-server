@@ -53,6 +53,29 @@ namespace CoreUtils {
         return std::stoi(contentLength);
     }
 
+    std::string parseCorrectEncoding(const std::string& currentData) {
+
+        std::string encodingObjective = "gzip";
+        std::string currentWord {};
+        uint8_t idx {};
+        // Parse encoding:
+
+        for (char c : currentData) {
+            if (c == encodingObjective[idx]) {
+                currentWord += c;
+                idx++;
+            } else {
+                currentWord = "";
+                idx = 0;
+            }
+
+            if (currentWord == encodingObjective) break;
+        }
+
+        return currentWord;
+
+    }
+
     void assignValue(RequestObj* requestObj, uint8_t objectiveValue, const std::string& currentData) {
 
         std::cout << "TO ADD: " + currentData << '\x0A';
@@ -85,12 +108,7 @@ namespace CoreUtils {
                 break;
             case 8:
 
-                PRINT_SUCCESS(std::to_string(currentData.size()));
-
-                if (currentData == "gzip\x0D") {
-                    requestObj->header.acceptEncoding = currentData;
-                    PRINT_HIGHLIGHT(requestObj->header.acceptEncoding);
-                }
+                requestObj->header.acceptEncoding = parseCorrectEncoding(currentData);
                 break;
             default:
                 break;
@@ -161,11 +179,9 @@ namespace CoreUtils {
                 index += 2;
                 continue;
 
-
-
             }
 
-            if (parse && (c == '\x20' || c == '\x0D')) {
+            if (parse && (c == '\x0D')) {
                 assignValue(requestObj, objectiveValue, currentData);
                 parse = false;
                 currentData = "";
